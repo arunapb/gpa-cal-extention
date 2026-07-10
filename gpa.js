@@ -30,6 +30,7 @@ const gradePoints42 = {
 const gradeOptions = Object.keys(gradePoints40);
 
 const rowsData = [];
+let nonGpaCredits = 0;
 let lastTableFound = null;
 let gpa40Row = null;
 let gpa42Row = null;
@@ -46,7 +47,11 @@ allRows.forEach((row) => {
     const rawGrade = gradeCell.textContent.trim();
     const gpaCreditText = cells[3].textContent.trim();
 
-    if (gpaCreditText === "-") return;
+    if (gpaCreditText === "-") {
+      const rawCredit = parseFloat(cells[4]?.textContent.trim());
+      if (!isNaN(rawCredit)) nonGpaCredits += rawCredit;
+      return;
+    }
 
     const credit = parseFloat(gpaCreditText);
     if (isNaN(credit)) return;
@@ -105,30 +110,29 @@ function recalculate() {
   const gpa42 = totalCredits > 0 ? (qp42 / totalCredits).toFixed(2) : "-";
 
   gpa40Row.querySelector(".gpa-value").textContent = gpa40;
-  gpa40Row.querySelector(".gpa-detail").textContent =
-    `Credits counted: ${totalCredits}`;
+  gpa40Row.querySelector(".gpa-detail").innerHTML =
+    `<b>GPA Credits: ${totalCredits}</b>`;
 
   gpa42Row.querySelector(".gpa-value").textContent = gpa42;
   gpa42Row.querySelector(".gpa-detail").textContent =
-    `Credits counted: ${totalCredits}`;
+    `Non-GPA Credits: ${nonGpaCredits}`;
 }
 
-// Build native-looking table rows, matching the existing "Final GPA" row style
-function buildGpaRow(labelText) {
+function buildGpaRow(labelText, detailBgColor) {
   const tr = document.createElement("tr");
 
   const labelTd = document.createElement("td");
   labelTd.colSpan = 2;
-  labelTd.bgColor = "#C6E0F0";
+  labelTd.style.backgroundColor = "#C6E0F0";
   labelTd.innerHTML = `<b>${labelText}</b>`;
 
   const valueTd = document.createElement("td");
-  valueTd.bgColor = "#C6E0F0";
+  valueTd.style.backgroundColor = "#FFFFFF";
   valueTd.innerHTML = `<b class="gpa-value">-</b>`;
 
   const detailTd = document.createElement("td");
   detailTd.colSpan = 2;
-  detailTd.bgColor = "#C6E0F0";
+  if (detailBgColor) detailTd.style.backgroundColor = detailBgColor;
   detailTd.className = "bodytext";
   detailTd.innerHTML = `<span class="gpa-detail"></span>`;
 
@@ -141,8 +145,8 @@ function buildGpaRow(labelText) {
 if (lastTableFound) {
   const tbody = lastTableFound.querySelector("tbody") || lastTableFound;
 
-  gpa40Row = buildGpaRow("My GPA (4.0 scale)");
-  gpa42Row = buildGpaRow("My GPA (4.2 scale)");
+  gpa40Row = buildGpaRow("My GPA (4.0 scale)", "#FFE8B0");
+  gpa42Row = buildGpaRow("My GPA (4.2 scale)", null);
 
   tbody.appendChild(gpa40Row);
   tbody.appendChild(gpa42Row);
