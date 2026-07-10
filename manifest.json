@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "UoM GPA Calculator",
+  "version": "1.0",
+  "description": "Calculates overall GPA on UoM results page",
+  "content_scripts": [
+    {
+      "matches": ["https://lms.uom.lk/mis_exam/reports/view_my_results.php*"],
+      "js": ["gpa.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
