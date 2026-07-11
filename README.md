@@ -18,13 +18,15 @@ Chrome does not allow installing extensions from a ZIP or folder by default, so 
 
 ### Step 1 — Download the extension files
 
-Clone or download this repository to your computer.
+Clone the **`uom` branch** of this repository to your computer.
 
 ```
-git clone https://github.com/arunapbandara/gpa-cal-extention.git
+git clone -b uom https://github.com/arunapbandara/gpa-cal-extention.git
 ```
 
-Or click **Code → Download ZIP** on GitHub, then extract the ZIP somewhere easy to find (e.g. your Desktop).
+Or on GitHub, switch to the **`uom` branch**, then click **Code → Download ZIP** and extract it somewhere easy to find (e.g. your Desktop).
+
+> **Note:** Use the `uom` branch — `main` does not contain the extension files.
 
 ### Step 2 — Open Chrome Extensions page
 
