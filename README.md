@@ -1,27 +1,27 @@
-# UoM GPA Calculator — Chrome Extension
+# UWU GPA Calculator — Chrome Extension
 
-Automatically calculates your GPA directly on the University of Moratuwa LMS results page. Supports both the **4.0** and **4.2** grading scales, separates GPA and Non-GPA credits, and lets you project your GPA for pending results.
+Automatically calculates your SGPA per semester and overall GPA directly on the Uva Wellassa University examination results portal. Supports the **UGC 12-point grading scale**, lets you classify modules as GPA or Non-GPA, and projects your GPA for pending results.
 
 ---
 
 ## Features
 
-- Calculates weighted GPA on both **4.0** and **4.2** scales
-- Displays two summary rows at the bottom of your results table
-  - **My GPA (4.0 scale)** — shows your GPA and **GPA Credits** in bold
-  - **My GPA (4.2 scale)** — shows your GPA and **Non-GPA Credits**
-- For subjects with a **Pending** result, a **Guess...** dropdown appears so you can select an expected grade and see your projected GPA update in real time
-- Color-coded summary rows so they stand out from the rest of the table
+- Calculates **SGPA** for each semester and displays it right after that semester's modules
+- Calculates a credit-weighted **Overall GPA** at the bottom of the table
+- Every module row gets a **GPA / Non-GPA** toggle so you can exclude non-credit courses from the calculation
+- For modules with no grade yet, a **Guess grade…** dropdown appears so you can select an expected grade and see your SGPA and overall GPA update in real time
+- A **what-if** badge appears on all GPA rows whenever any guessed grade is active, so you always know the numbers are projections
 
 ---
 
 ## How the output looks
 
-| Column | My GPA (4.0 scale) row | My GPA (4.2 scale) row |
-|--------|------------------------|------------------------|
-| Label | Blue background | Blue background |
-| GPA value | White background | White background |
-| Credit info | **GPA Credits: X** (bold, amber) | Non-GPA Credits: Y (plain) |
+| Injected row | What it shows |
+|---|---|
+| **SGPA — \<Semester title\>** | SGPA value + total graded credits for that semester |
+| **Overall GPA** | Credit-weighted GPA across all semesters |
+
+Both rows show `N/A` until at least one graded, GPA-eligible module exists.
 
 ---
 
@@ -37,7 +37,7 @@ Clone or download this repository to your computer.
 git clone https://github.com/arunapbandara/gpa-cal-extention.git
 ```
 
-Or click **Code → Download ZIP** on GitHub, then extract the ZIP to somewhere easy to find (e.g. your Desktop).
+Or click **Code → Download ZIP** on GitHub, then extract the ZIP somewhere easy to find (e.g. your Desktop).
 
 ### Step 2 — Open the Chrome Extensions page
 
@@ -58,37 +58,54 @@ In the **top-right corner** of the Extensions page, toggle **Developer mode** ON
 3. Select the folder — it must contain `manifest.json` and `gpa.js` at the top level
 4. Click **Select Folder**
 
-The extension named **UoM GPA Calculator** will appear in your extensions list.
+The extension named **UWU GPA Calculator** will appear in your extensions list.
 
 ### Step 5 — Open your results page
 
-1. Go to: `https://lms.uom.lk/mis_exam/reports/view_my_results.php`
+1. Go to: `https://exam.uwu.ac.lk/ug/user/`
 2. Log in if prompted
-3. Your GPA rows will appear automatically at the bottom of the results table
+3. Navigate to your results page — SGPA and Overall GPA rows will appear automatically
 
 ---
 
-## Grading scales
+## Grading scale
 
-| Grade | 4.0 Scale | 4.2 Scale |
-|-------|-----------|-----------|
-| A+    | 4.0       | 4.2       |
-| A     | 4.0       | 4.0       |
-| A-    | 3.7       | 3.7       |
-| B+    | 3.3       | 3.3       |
-| B     | 3.0       | 3.0       |
-| B-    | 2.7       | 2.7       |
-| C+    | 2.3       | 2.3       |
-| C     | 2.0       | 2.0       |
-| C-    | 1.7       | 1.7       |
-| D     | 1.0       | 1.0       |
-| E     | 0.0       | 0.0       |
+UWU uses the UGC 12-point scale:
+
+| Grade | Points |
+|-------|--------|
+| A+    | 4.0    |
+| A     | 4.0    |
+| A-    | 3.7    |
+| B+    | 3.3    |
+| B     | 3.0    |
+| B-    | 2.7    |
+| C+    | 2.3    |
+| C     | 2.0    |
+| C-    | 1.7    |
+| D+    | 1.3    |
+| D     | 1.0    |
+| E     | 0.0    |
+
+Grades marked **AB** or **-** are excluded from GPA calculations.
+
+---
+
+## Credit extraction
+
+The extension reads the credit value directly from the course code suffix. For example, `CST 121-3` carries **3 credits**. If a course code has no `-N` suffix the module is treated as non-credit and skipped automatically.
+
+---
+
+## GPA / Non-GPA classification
+
+Every module row shows a small **GPA module / Non-GPA module** dropdown in the last column. All modules default to **GPA** — flip any row to **Non-GPA** to exclude it from the calculation without hiding it from the table. The SGPA and Overall GPA rows update instantly.
 
 ---
 
 ## Projecting pending results
 
-If any subject shows **Pending**, a **Guess...** dropdown appears inline next to the grade. Selecting a grade instantly recalculates both GPA rows without reloading the page.
+If any module has no grade yet, a **Guess grade…** dropdown appears inline on that row. Selecting a grade instantly recalculates the SGPA for that semester and the Overall GPA. A **what-if** badge on every GPA row reminds you the numbers include projected grades.
 
 ---
 
@@ -97,7 +114,7 @@ If any subject shows **Pending**, a **Guess...** dropdown appears inline next to
 After pulling new changes from this repository:
 
 1. Go to `chrome://extensions`
-2. Find **UoM GPA Calculator** and click the **refresh (↺) icon**
+2. Find **UWU GPA Calculator** and click the **refresh (↺) icon**
 3. Reload your results page
 
 ---
@@ -106,10 +123,10 @@ After pulling new changes from this repository:
 
 | Problem | Fix |
 |---------|-----|
-| GPA rows don't appear | Confirm you are on the exact URL (`view_my_results.php`) and reload the page |
+| GPA rows don't appear | Confirm you are on a results page under `exam.uwu.ac.lk/ug/user/` and reload |
 | Extension not listed after loading | Make sure the folder you selected contains `manifest.json` directly inside it, not in a sub-folder |
-| GPA shows `-` | No results with valid GPA credits found yet, or all pending subjects have no grade selected |
-| Non-GPA Credits shows `0` | Your table may store non-GPA credit values in a different column — open an issue with a screenshot |
+| SGPA shows `N/A` | No graded GPA-eligible modules found yet for that semester, or all are marked Non-GPA |
+| Credits not counted | Check that the course code ends with `-N` (e.g. `CST 121-3`); courses without that suffix are skipped |
 
 ---
 
@@ -117,5 +134,6 @@ After pulling new changes from this repository:
 
 | File | Purpose |
 |------|---------|
-| `manifest.json` | Extension config — defines which page the script runs on and the extension name/version |
-| `gpa.js` | All logic — parses the results table, tracks GPA and non-GPA credits, injects summary rows |
+| `manifest.json` | Extension config — defines which pages the script runs on and the extension name/version |
+| `gpa.js` | All logic — parses the results table, computes SGPA/GPA, injects summary rows and dropdowns |
+| `styles.css` | Styles for the injected summary rows, badges, and dropdowns |
