@@ -11,6 +11,78 @@
 // A new university adapter should only ever need functions from here,
 // never duplicate them.
 
+// ---- Summary rows (SGPA / Overall GPA / per-scale GPA, etc.) ----
+
+function makeSummaryRow({
+  colSpan,
+  label,
+  value,
+  extraText,
+  isWhatIf,
+  rowClass,
+  bgClass,
+}) {
+  const tr = document.createElement("tr");
+  tr.className = `gpa-ext-summary-row ${rowClass || ""} ${bgClass || ""}`;
+
+  const td = document.createElement("td");
+  td.colSpan = colSpan;
+  td.className = "text-right";
+  td.innerHTML =
+    `<strong>${label}</strong> <span class="gpa-ext-value">${value}</span>` +
+    (extraText ? ` <span class="gpa-ext-extra">${extraText}</span>` : "") +
+    (isWhatIf ? ' <span class="gpa-ext-whatif-badge">what-if</span>' : "");
+  tr.appendChild(td);
+  return tr;
+}
+
+function clearPreviousSummaryRows() {
+  document
+    .querySelectorAll(".gpa-ext-summary-row")
+    .forEach((el) => el.remove());
+}
+
+// ---- Repeat/resit handling ----
+// Given a flat list of module entries that may contain the same
+// course code more than once (a resit/repeat), returns the Set of
+// entry ids that should actually count toward GPA math: the single
+// highest-graded attempt per code. Every other attempt for that code
+// is excluded so its credit is never counted twice. Entries with no
+// code, or that aren't graded, never win (they simply don't compete).
+//
+// This is dynamic by design - call it fresh on every recalculation,
+// since what-if guesses can change which attempt currently has the
+// higher grade point.
+function selectBestAttempts(entries) {
+  const byCode = new Map();
+  entries.forEach((e) => {
+    if (!e.code) return; // no code to group by - treat as unique, always "wins" on its own
+    if (!byCode.has(e.code)) byCode.set(e.code, []);
+    byCode.get(e.code).push(e);
+  });
+
+  const winners = new Set();
+  byCode.forEach((group) => {
+    const graded = group.filter((e) => e.isGraded);
+    if (graded.length === 0) return; // nothing graded yet in this group - no winner to pick
+    let best = graded[0];
+    graded.forEach((e) => {
+      if (e.gradePoint > best.gradePoint) best = e;
+    });
+    winners.add(best.id);
+  });
+
+  return winners;
+}
+
+// For an entry with no `code` (grouping key), it should always be
+// treated as its own winner - this helper makes that check explicit
+// at call sites instead of relying on Set membership alone.
+function isWinningAttempt(entry, winners) {
+  if (!entry.code) return true;
+  return winners.has(entry.id);
+}
+
 function createEngine() {
   // Isolated per page-load / per adapter run - two adapters never run
   // on the same page, but keeping this inside the factory means every
@@ -108,80 +180,7 @@ function createEngine() {
     return state.gpaOverrides.has(k) ? state.gpaOverrides.get(k) : defaultValue;
   }
 
-  // ---- Summary rows (SGPA / Overall GPA / per-scale GPA, etc.) ----
-
-  function makeSummaryRow({
-    colSpan,
-    label,
-    value,
-    extraText,
-    isWhatIf,
-    rowClass,
-    bgClass,
-  }) {
-    const tr = document.createElement("tr");
-    tr.className = `gpa-ext-summary-row ${rowClass || ""} ${bgClass || ""}`;
-
-    const td = document.createElement("td");
-    td.colSpan = colSpan;
-    td.className = "text-right";
-    td.innerHTML =
-      `<strong>${label}</strong> <span class="gpa-ext-value">${value}</span>` +
-      (extraText ? ` <span class="gpa-ext-extra">${extraText}</span>` : "") +
-      (isWhatIf ? ' <span class="gpa-ext-whatif-badge">what-if</span>' : "");
-    tr.appendChild(td);
-    return tr;
-  }
-
-  function clearPreviousSummaryRows() {
-    document
-      .querySelectorAll(".gpa-ext-summary-row")
-      .forEach((el) => el.remove());
-  }
-
-  // ---- Repeat/resit handling ----
-  // Given a flat list of module entries that may contain the same
-  // course code more than once (a resit/repeat), returns the Set of
-  // entry ids that should actually count toward GPA math: the single
-  // highest-graded attempt per code. Every other attempt for that code
-  // is excluded so its credit is never counted twice. Entries with no
-  // code, or that aren't graded, never win (they simply don't compete).
-  //
-  // This is dynamic by design - call it fresh on every recalculation,
-  // since what-if guesses can change which attempt currently has the
-  // higher grade point.
-  function selectBestAttempts(entries) {
-    const byCode = new Map();
-    entries.forEach((e) => {
-      if (!e.code) return; // no code to group by - treat as unique, always "wins" on its own
-      if (!byCode.has(e.code)) byCode.set(e.code, []);
-      byCode.get(e.code).push(e);
-    });
-
-    const winners = new Set();
-    byCode.forEach((group) => {
-      const graded = group.filter((e) => e.isGraded);
-      if (graded.length === 0) return; // nothing graded yet in this group - no winner to pick
-      let best = graded[0];
-      graded.forEach((e) => {
-        if (e.gradePoint > best.gradePoint) best = e;
-      });
-      winners.add(best.id);
-    });
-
-    return winners;
-  }
-
-  // For an entry with no `code` (grouping key), it should always be
-  // treated as its own winner - this helper makes that check explicit
-  // at call sites instead of relying on Set membership alone.
-  function isWinningAttempt(entry, winners) {
-    if (!entry.code) return true;
-    return winners.has(entry.id);
-  }
-
   return {
-    state,
     buildWhatIfDropdown,
     getWhatIfOverride,
     hasAnyWhatIf,

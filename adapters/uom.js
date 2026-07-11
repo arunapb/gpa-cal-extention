@@ -25,10 +25,6 @@
   const gradePoints42 = { ...gradePoints40, "A+": 4.2 };
   const GRADE_OPTIONS = Object.keys(gradePoints40);
 
-  function round2(n) {
-    return Math.round(n * 100) / 100;
-  }
-
   function run(engine) {
     const rowsData = [];
     let nonGpaCredits = 0;
@@ -50,13 +46,13 @@
       const gpaCreditText = cells[3].textContent.trim();
 
       if (gpaCreditText === "-") {
-        const rawCredit = parseFloat(cells[4]?.textContent.trim());
-        if (!isNaN(rawCredit)) nonGpaCredits += rawCredit;
+        const rawCredit = Number.parseFloat(cells[4]?.textContent.trim());
+        if (!Number.isNaN(rawCredit)) nonGpaCredits += rawCredit;
         return; // UoM's own column already marks this Non-GPA - trustworthy, no override needed
       }
 
-      const credit = parseFloat(gpaCreditText);
-      if (isNaN(credit)) return;
+      const credit = Number.parseFloat(gpaCreditText);
+      if (Number.isNaN(credit)) return;
 
       if (rawGrade.startsWith("Pending")) {
         const dropdown = engine.buildWhatIfDropdown(
@@ -83,9 +79,6 @@
     });
 
     if (!lastTableFound) return false; // not this page's table shape
-
-    let gpa40Row = null;
-    let gpa42Row = null;
 
     function recalculateAndRender() {
       const isWhatIf = engine.hasAnyWhatIf();
@@ -120,19 +113,19 @@
         qp42 += e.gradePoint42 * e.credit;
       });
 
-      const gpa40 = totalCredits > 0 ? (qp40 / totalCredits).toFixed(2) : "-";
-      const gpa42 = totalCredits > 0 ? (qp42 / totalCredits).toFixed(2) : "-";
+      const gpa40 = totalCredits > 0 ? (qp40 / totalCredits).toFixed(4) : "-";
+      const gpa42 = totalCredits > 0 ? (qp42 / totalCredits).toFixed(4) : "-";
 
       engine.clearPreviousSummaryRows();
 
-      gpa40Row = engine.makeSummaryRow({
+      const gpa40Row = engine.makeSummaryRow({
         colSpan: 5,
         label: "Overall GPA (4.0 scale):",
         value: gpa40,
         isWhatIf,
         rowClass: "gpa-uom-40-row",
       });
-      gpa42Row = engine.makeSummaryRow({
+      const gpa42Row = engine.makeSummaryRow({
         colSpan: 5,
         label: "Overall GPA (4.2 scale):",
         value: gpa42,

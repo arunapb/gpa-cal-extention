@@ -25,7 +25,7 @@
 
   function extractCredits(courseCode) {
     const match = courseCode.trim().match(/-(\d+)\s*$/);
-    return match ? parseInt(match[1], 10) : null;
+    return match ? Number.parseInt(match[1], 10) : null;
   }
 
   function parseResultsTable() {
@@ -53,22 +53,19 @@
 
       const code = cells[0].textContent.trim();
       const gradeRaw = cells[2].textContent.trim();
-      const status = cells[3].textContent.trim();
+      const status = cells[3].textContent.trim().toUpperCase();
       const credits = extractCredits(code);
       const gradePoint = GRADE_POINTS[gradeRaw] ?? null;
       const isGraded = gradePoint !== null && !NON_GRADE_TOKENS.has(gradeRaw);
-      const isEndRepeat = status.toUpperCase().includes("REPEAT");
-      const isPass = status.toUpperCase() === "PASS";
+      const isPass = status === "PASS";
 
       current.rows.push({
         tr,
         code,
         gradeRaw,
-        status,
         credits,
         gradePoint,
         isGraded,
-        isEndRepeat,
         isPass,
       });
     }
@@ -133,7 +130,7 @@
         const sgpa = totalCredits > 0 ? totalPoints / totalCredits : null;
         const text =
           sgpa !== null
-            ? `${round2(sgpa).toFixed(2)} (${totalCredits} credits)`
+            ? `${round2(sgpa).toFixed(4)} (${totalCredits} credits)`
             : "N/A (no graded courses yet)";
         const row = engine.makeSummaryRow({
           colSpan: 5,
@@ -142,7 +139,7 @@
           isWhatIf,
           rowClass: "gpa-sgpa-row",
         });
-        const lastRow = sem.rows[sem.rows.length - 1];
+        const lastRow = sem.rows.at(-1);
         if (lastRow) lastRow.tr.insertAdjacentElement("afterend", row);
       });
 
@@ -164,7 +161,7 @@
         overallCredits > 0 ? round2(overallPoints / overallCredits) : null;
       const overallText =
         overallGPA !== null
-          ? `${overallGPA.toFixed(2)} (${overallCredits} credits)`
+          ? `${overallGPA.toFixed(4)} (${overallCredits} credits)`
           : "N/A";
       const table = document.querySelector(".card-body table");
       table
