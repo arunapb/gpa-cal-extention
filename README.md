@@ -1,22 +1,35 @@
 # UoM GPA Calculator — Chrome Extension
 
-Automatically calculates your GPA directly on the University of Moratuwa LMS results page. Supports both the **4.0** and **4.2** grading scales, and lets you guess pending grades to see a projected GPA.
+Automatically calculates your GPA directly on the University of Moratuwa LMS results page. Supports both the **4.0** and **4.2** grading scales, separates GPA and Non-GPA credits, and lets you project your GPA for pending results.
 
 ---
 
-## What it does
+## Features
 
-- Reads your result table on `lms.uom.lk` and calculates your weighted GPA
-- Shows two rows at the bottom of the table: **GPA (4.0 scale)** and **GPA (4.2 scale)**
-- For subjects with **Pending** results, shows a dropdown so you can guess the grade and see your projected GPA instantly
+- Calculates weighted GPA on both **4.0** and **4.2** scales
+- Displays two summary rows at the bottom of your results table
+  - **My GPA (4.0 scale)** — shows your GPA and **GPA Credits** in bold
+  - **My GPA (4.2 scale)** — shows your GPA and **Non-GPA Credits**
+- For subjects with a **Pending** result, a **Guess...** dropdown appears so you can select an expected grade and see your projected GPA update in real time
+- Color-coded summary rows so they stand out from the rest of the table
+
+---
+
+## How the output looks
+
+| Column | My GPA (4.0 scale) row | My GPA (4.2 scale) row |
+|--------|------------------------|------------------------|
+| Label | Blue background | Blue background |
+| GPA value | White background | White background |
+| Credit info | **GPA Credits: X** (bold, amber) | Non-GPA Credits: Y (plain) |
 
 ---
 
 ## Installation
 
-Chrome does not allow installing extensions from a ZIP or folder by default, so you need to enable **Developer Mode** first.
+Chrome does not allow loading extensions from a folder by default. You need to enable **Developer Mode** first.
 
-### Step 1 — Download the extension files
+### Step 1 — Download the extension
 
 Clone or download this repository to your computer.
 
@@ -24,35 +37,34 @@ Clone or download this repository to your computer.
 git clone https://github.com/arunapbandara/gpa-cal-extention.git
 ```
 
-Or click **Code → Download ZIP** on GitHub, then extract the ZIP somewhere easy to find (e.g. your Desktop).
+Or click **Code → Download ZIP** on GitHub, then extract the ZIP to somewhere easy to find (e.g. your Desktop).
 
-### Step 2 — Open Chrome Extensions page
+### Step 2 — Open the Chrome Extensions page
 
 1. Open **Google Chrome**
-2. In the address bar, type:
+2. Type the following in the address bar and press **Enter**:
    ```
    chrome://extensions
    ```
-   and press **Enter**
 
 ### Step 3 — Enable Developer Mode
 
-In the top-right corner of the Extensions page, toggle **Developer mode** ON.
+In the **top-right corner** of the Extensions page, toggle **Developer mode** ON.
 
 ### Step 4 — Load the extension
 
-1. Click the **Load unpacked** button (top-left)
+1. Click **Load unpacked** (top-left)
 2. In the file picker, navigate to the folder you downloaded/extracted in Step 1
-3. Select the folder (it should contain `manifest.json` and `gpa.js`)
+3. Select the folder — it must contain `manifest.json` and `gpa.js` at the top level
 4. Click **Select Folder**
 
-The extension named **UoM GPA Calculator** will now appear in your list of extensions.
+The extension named **UoM GPA Calculator** will appear in your extensions list.
 
-### Step 5 — Visit your results page
+### Step 5 — Open your results page
 
-1. Go to [https://lms.uom.lk/mis_exam/reports/view_my_results.php](https://lms.uom.lk/mis_exam/reports/view_my_results.php)
+1. Go to: `https://lms.uom.lk/mis_exam/reports/view_my_results.php`
 2. Log in if prompted
-3. Your GPA will be calculated and displayed automatically at the bottom of your results table
+3. Your GPA rows will appear automatically at the bottom of the results table
 
 ---
 
@@ -76,16 +88,17 @@ The extension named **UoM GPA Calculator** will now appear in your list of exten
 
 ## Projecting pending results
 
-If any of your results show **Pending**, a **Guess...** dropdown will appear next to that subject. Select an expected grade and the GPA rows will update in real time.
+If any subject shows **Pending**, a **Guess...** dropdown appears inline next to the grade. Selecting a grade instantly recalculates both GPA rows without reloading the page.
 
 ---
 
 ## Updating the extension
 
-If you pull new changes from this repo:
+After pulling new changes from this repository:
 
 1. Go to `chrome://extensions`
-2. Find **UoM GPA Calculator** and click the **refresh icon**
+2. Find **UoM GPA Calculator** and click the **refresh (↺) icon**
+3. Reload your results page
 
 ---
 
@@ -93,9 +106,10 @@ If you pull new changes from this repo:
 
 | Problem | Fix |
 |---------|-----|
-| GPA rows don't appear | Make sure you are on the exact results URL (`view_my_results.php`). Reload the page. |
-| Extension not listed after loading | Ensure the folder you selected contains `manifest.json` at the top level, not inside a sub-folder. |
-| GPA shows `-` | You may have no results with valid credit values yet, or all results are Pending with no grade guessed. |
+| GPA rows don't appear | Confirm you are on the exact URL (`view_my_results.php`) and reload the page |
+| Extension not listed after loading | Make sure the folder you selected contains `manifest.json` directly inside it, not in a sub-folder |
+| GPA shows `-` | No results with valid GPA credits found yet, or all pending subjects have no grade selected |
+| Non-GPA Credits shows `0` | Your table may store non-GPA credit values in a different column — open an issue with a screenshot |
 
 ---
 
@@ -103,5 +117,5 @@ If you pull new changes from this repo:
 
 | File | Purpose |
 |------|---------|
-| `manifest.json` | Extension configuration — tells Chrome which pages to run the script on |
-| `gpa.js` | Core logic — reads the results table, calculates GPA, and injects the GPA rows |
+| `manifest.json` | Extension config — defines which page the script runs on and the extension name/version |
+| `gpa.js` | All logic — parses the results table, tracks GPA and non-GPA credits, injects summary rows |
