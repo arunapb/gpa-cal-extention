@@ -106,8 +106,8 @@ function recalculate() {
     qp42 += gradePoints42[grade] * entry.credit;
   });
 
-  const gpa40 = totalCredits > 0 ? (qp40 / totalCredits).toFixed(2) : "-";
-  const gpa42 = totalCredits > 0 ? (qp42 / totalCredits).toFixed(2) : "-";
+  const gpa40 = totalCredits > 0 ? (qp40 / totalCredits).toFixed(4) : "-";
+  const gpa42 = totalCredits > 0 ? (qp42 / totalCredits).toFixed(4) : "-";
 
   gpa40Row.querySelector(".gpa-value").textContent = gpa40;
   gpa40Row.querySelector(".gpa-detail").innerHTML =
