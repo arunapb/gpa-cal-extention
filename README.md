@@ -31,13 +31,13 @@ Chrome does not allow loading extensions from a folder by default. You need to e
 
 ### Step 1 — Download the extension
 
-Clone or download this repository to your computer.
+Clone only the `uwu` branch to your computer:
 
 ```
-git clone https://github.com/arunapbandara/gpa-cal-extention.git
+git clone --branch uwu --single-branch https://github.com/arunapbandara/gpa-cal-extention.git
 ```
 
-Or click **Code → Download ZIP** on GitHub, then extract the ZIP somewhere easy to find (e.g. your Desktop).
+Or to download without Git: on GitHub switch to the **uwu** branch, then click **Code → Download ZIP**, and extract the ZIP somewhere easy to find (e.g. your Desktop).
 
 ### Step 2 — Open the Chrome Extensions page
 
