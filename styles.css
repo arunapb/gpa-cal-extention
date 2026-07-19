@@ -50,6 +50,13 @@
   margin-left: 6px;
 }
 
+/* Inline SGPA estimate injected next to UoM's existing "SGPA : -" cell */
+.gpa-ext-sgpa-guess {
+  font-weight: 700;
+  color: #3730a3;
+  margin-left: 4px;
+}
+
 /* What-if badge */
 .gpa-ext-whatif-badge {
   display: inline-block;

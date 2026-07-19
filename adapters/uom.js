@@ -2,7 +2,7 @@
 // University: University of Moratuwa (UoM)
 // Page: lms.uom.lk/mis_exam/reports/view_my_results.php*
 //
-// Table shape: flat (no semester grouping), a dedicated GPA-credit
+// Table shape: semester-grouped rows, a dedicated GPA-credit
 // column that already says "-" for non-GPA modules (more reliable
 // than guessing from a course code, so no manual classification
 // override is needed here), and TWO simultaneous grading scales
@@ -30,12 +30,38 @@
     let nonGpaCredits = 0;
     let lastTableFound = null;
 
+    // Track per-semester groups so we can update UoM's own "SGPA : -" rows
+    // when the user provides guess grades for pending modules.
+    const semesterGroups = []; // {rowIds: string[], sgpaCell: HTMLElement, hasPending: bool}
+    let currentGroupRowIds = [];
+    let currentGroupHasPending = false;
+
     const allRows = document.querySelectorAll("tr");
     let rowCounter = 0;
 
     allRows.forEach((row) => {
       const cells = row.querySelectorAll("td");
-      if (!(row.className.includes("bodytext") && cells.length === 5)) return;
+
+      // Detect UoM's "SGPA : ..." summary row – it doesn't match the bodytext+5-cell
+      // pattern, but one of its cells starts with "SGPA".
+      if (!row.className.includes("bodytext") || cells.length !== 5) {
+        if (cells.length > 0 && row.textContent.includes("SGPA")) {
+          let sgpaTd = null;
+          cells.forEach((td) => {
+            if (td.textContent.trim().startsWith("SGPA")) sgpaTd = td;
+          });
+          if (sgpaTd && currentGroupRowIds.length > 0) {
+            semesterGroups.push({
+              rowIds: [...currentGroupRowIds],
+              sgpaCell: sgpaTd,
+              hasPending: currentGroupHasPending,
+            });
+            currentGroupRowIds = [];
+            currentGroupHasPending = false;
+          }
+        }
+        return;
+      }
 
       lastTableFound = row.closest("table");
       const rowId = `uom:${rowCounter++}`;
@@ -54,6 +80,8 @@
       const credit = Number.parseFloat(gpaCreditText);
       if (Number.isNaN(credit)) return;
 
+      const groupIndex = semesterGroups.length;
+
       if (rawGrade.startsWith("Pending")) {
         const dropdown = engine.buildWhatIfDropdown(
           rowId,
@@ -61,7 +89,8 @@
           recalculateAndRender,
         );
         gradeCell.appendChild(dropdown);
-        rowsData.push({ rowId, code, isPending: true, credit });
+        rowsData.push({ rowId, code, isPending: true, credit, groupIndex });
+        currentGroupHasPending = true;
       } else {
         const cleanGrade = rawGrade.split(" (")[0].trim();
         if (gradePoints40[cleanGrade] === undefined) {
@@ -74,8 +103,10 @@
           isPending: false,
           credit,
           grade: cleanGrade,
+          groupIndex,
         });
       }
+      currentGroupRowIds.push(rowId);
     });
 
     if (!lastTableFound) return false; // not this page's table shape
@@ -91,6 +122,7 @@
           id: entry.rowId,
           code: entry.code,
           credit: entry.credit,
+          groupIndex: entry.groupIndex,
           gradePoint: grade ? gradePoints40[grade] : null, // used for dedup comparison; grade order is identical on both scales
           gradePoint42: grade ? gradePoints42[grade] : null,
           isGraded: !!grade,
@@ -101,6 +133,37 @@
       // pass) only counts once, using whichever attempt has the higher
       // grade - re-evaluated live so what-if guesses can change the winner.
       const winners = engine.selectBestAttempts(entries);
+
+      // Per-semester SGPA: update UoM's own "SGPA : -" cells when the user
+      // has guessed all (or some) pending grades in a semester.
+      // No cross-semester dedup here – SGPA is per-semester by definition.
+      const groupStats = new Map();
+      entries.forEach((e) => {
+        if (!e.isGraded) return;
+        if (!groupStats.has(e.groupIndex)) {
+          groupStats.set(e.groupIndex, { qp40: 0, qp42: 0, totalCredits: 0 });
+        }
+        const s = groupStats.get(e.groupIndex);
+        s.totalCredits += e.credit;
+        s.qp40 += e.gradePoint * e.credit;
+        s.qp42 += e.gradePoint42 * e.credit;
+      });
+
+      semesterGroups.forEach((group, idx) => {
+        if (!group.sgpaCell || !group.hasPending) return;
+        const prev = group.sgpaCell.querySelector(".gpa-ext-sgpa-guess");
+        if (prev) prev.remove();
+        const stats = groupStats.get(idx);
+        if (!stats || stats.totalCredits === 0) return;
+        const sgpa40 = (stats.qp40 / stats.totalCredits).toFixed(4);
+        const sgpa42 = (stats.qp42 / stats.totalCredits).toFixed(4);
+        const span = document.createElement("span");
+        span.className = "gpa-ext-sgpa-guess";
+        span.innerHTML =
+          ` &rarr; ${sgpa40} / ${sgpa42}` +
+          (isWhatIf ? ' <span class="gpa-ext-whatif-badge">what-if</span>' : "");
+        group.sgpaCell.appendChild(span);
+      });
 
       let qp40 = 0,
         qp42 = 0,
