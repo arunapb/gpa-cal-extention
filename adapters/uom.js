@@ -20,10 +20,13 @@
     C: 2.0,
     "C-": 1.7,
     D: 1.0,
-    E: 0.0,
+    I: 0.0, // Incomplete (scored 34 and below)
+    F: 0.0, // Fail
   };
   const gradePoints42 = { ...gradePoints40, "A+": 4.2 };
   const GRADE_OPTIONS = Object.keys(gradePoints40);
+  // I (Incomplete) max achievable grade is C — cap retake options accordingly
+  const INCOMPLETE_RETAKE_OPTIONS = ["C", "C-", "D"];
 
   function run(engine) {
     const rowsData = [];
@@ -93,18 +96,41 @@
         currentGroupHasPending = true;
       } else {
         const cleanGrade = rawGrade.split(" (")[0].trim();
+        // P = Pass (non-GPA), N = Academic Concession, W = Withdrawn — no grade points
+        if (["P", "N", "W"].includes(cleanGrade)) return;
         if (gradePoints40[cleanGrade] === undefined) {
           console.warn("[UoM GPA] Unrecognized grade, skipping:", cleanGrade);
           return;
         }
-        rowsData.push({
-          rowId,
-          code,
-          isPending: false,
-          credit,
-          grade: cleanGrade,
-          groupIndex,
-        });
+        if (["I", "F"].includes(cleanGrade)) {
+          // Count as 0.0 by default but let the student simulate a retake
+          const retakeOptions =
+            cleanGrade === "I" ? INCOMPLETE_RETAKE_OPTIONS : GRADE_OPTIONS;
+          const dropdown = engine.buildWhatIfDropdown(
+            rowId,
+            retakeOptions,
+            recalculateAndRender,
+          );
+          gradeCell.appendChild(dropdown);
+          rowsData.push({
+            rowId,
+            code,
+            isPending: true,
+            fallbackGrade: cleanGrade,
+            credit,
+            groupIndex,
+          });
+          currentGroupHasPending = true;
+        } else {
+          rowsData.push({
+            rowId,
+            code,
+            isPending: false,
+            credit,
+            grade: cleanGrade,
+            groupIndex,
+          });
+        }
       }
       currentGroupRowIds.push(rowId);
     });
@@ -115,8 +141,11 @@
       const isWhatIf = engine.hasAnyWhatIf();
 
       const entries = rowsData.map((entry) => {
-        const grade = entry.isPending
+        const override = entry.isPending
           ? engine.getWhatIfOverride(entry.rowId)
+          : null;
+        const grade = entry.isPending
+          ? override || entry.fallbackGrade || null
           : entry.grade;
         return {
           id: entry.rowId,
@@ -126,6 +155,7 @@
           gradePoint: grade ? gradePoints40[grade] : null, // used for dedup comparison; grade order is identical on both scales
           gradePoint42: grade ? gradePoints42[grade] : null,
           isGraded: !!grade,
+          hasOverride: !!override,
         };
       });
 
@@ -157,11 +187,16 @@
         if (!stats || stats.totalCredits === 0) return;
         const sgpa40 = (stats.qp40 / stats.totalCredits).toFixed(4);
         const sgpa42 = (stats.qp42 / stats.totalCredits).toFixed(4);
+        const groupHasOverride = entries.some(
+          (e) => e.groupIndex === idx && e.hasOverride,
+        );
         const span = document.createElement("span");
         span.className = "gpa-ext-sgpa-guess";
         span.innerHTML =
           ` &rarr; ${sgpa40} / ${sgpa42}` +
-          (isWhatIf ? ' <span class="gpa-ext-whatif-badge">what-if</span>' : "");
+          (groupHasOverride
+            ? ' <span class="gpa-ext-whatif-badge">what-if</span>'
+            : "");
         group.sgpaCell.appendChild(span);
       });
 
