@@ -28,6 +28,21 @@
   // I (Incomplete) max achievable grade is C — cap retake options accordingly
   const INCOMPLETE_RETAKE_OPTIONS = ["C", "C-", "D"];
 
+  // UoM shows Incomplete as "I", "I-we" (medical), "I-ca" (coursework absent), etc.
+  // All variants are worth 0.0 and share the same retake cap.
+  function normalizeGrade(raw) {
+    if (raw === "I" || raw.startsWith("I-")) return "I";
+    return raw;
+  }
+
+  function getDegreeClass(gpa) {
+    if (gpa >= 3.70) return "First Class";
+    if (gpa >= 3.30) return "Second Class (Upper Division)";
+    if (gpa >= 3.00) return "Second Class (Lower Division)";
+    if (gpa >= 2.00) return "Pass";
+    return null;
+  }
+
   function run(engine) {
     const rowsData = [];
     let nonGpaCredits = 0;
@@ -95,7 +110,7 @@
         rowsData.push({ rowId, code, isPending: true, credit, groupIndex });
         currentGroupHasPending = true;
       } else {
-        const cleanGrade = rawGrade.split(" (")[0].trim();
+        const cleanGrade = normalizeGrade(rawGrade.split(" (")[0].trim());
         // P = Pass (non-GPA), N = Academic Concession, W = Withdrawn — no grade points
         if (["P", "N", "W"].includes(cleanGrade)) return;
         if (gradePoints40[cleanGrade] === undefined) {
@@ -248,6 +263,19 @@
       tbody.appendChild(gpa42Row);
       tbody.appendChild(gpaCreditsRow);
       tbody.appendChild(nonGpaCreditsRow);
+
+      if (totalCredits === 135) {
+        const gpa40Num = parseFloat(gpa40);
+        const degreeClass = getDegreeClass(gpa40Num);
+        const classRow = engine.makeSummaryRow({
+          colSpan: 5,
+          label: "Degree Class:",
+          value: degreeClass ?? "Below Pass",
+          isWhatIf,
+          rowClass: "gpa-uom-class-row",
+        });
+        tbody.appendChild(classRow);
+      }
     }
 
     recalculateAndRender();
