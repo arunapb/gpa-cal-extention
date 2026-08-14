@@ -64,6 +64,24 @@
 
   const STORAGE_KEY = "gpaExtUopDegreeType"; // manual override: "general" | "honours"
   const DETECTED_CACHE_KEY = "gpaExtUopDetectedDegree"; // cached {type, name} from /Student
+  const DROPPED_STORAGE_KEY = "gpaExtUopDroppedModules"; // {[stableKey]: true} for modules dropped from GPA
+
+  function loadDroppedModules() {
+    try {
+      const raw = localStorage.getItem(DROPPED_STORAGE_KEY);
+      return raw ? new Set(Object.keys(JSON.parse(raw))) : new Set();
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function saveDroppedModules(set) {
+    const obj = {};
+    set.forEach((k) => {
+      obj[k] = true;
+    });
+    localStorage.setItem(DROPPED_STORAGE_KEY, JSON.stringify(obj));
+  }
 
   function detectTypeFromDegreeName(name) {
     return /honou?rs/i.test(name) ? "honours" : "general";
@@ -138,10 +156,40 @@
     const levelGroups = new Map(); // levelNum -> { rows: [] }
     const semesterGroups = []; // { label, rows: [], lastRowEl }
     const semesterGroupByLabel = new Map(); // flat-mode (AllGrades) only
+    const allRowDescs = []; // flat list of every GPA-counted row, for the Dropped Credits total
+    const droppedModules = loadDroppedModules(); // Set<stableKey>, persisted across reloads
+    const codeOccurrence = new Map(); // code -> count seen so far, disambiguates resits
     let currentSemesterGroup = null;
     let currentLevelRows = null;
     let nonGpaCourseCount = 0;
     let rowCounter = 0;
+
+    // "Is this module being dropped from the GPA or not" - plain
+    // Keep/Drop wording, and directly backed by the persisted
+    // droppedModules set (no shared-engine state to keep in sync).
+    function buildDropControl(key, rowEl, onChange) {
+      const select = document.createElement("select");
+      select.className = "gpa-ext-whatif-select gpa-uop-drop-select";
+      [
+        ["keep", "Keep (counts toward GPA)"],
+        ["drop", "Drop (excluded from GPA)"],
+      ].forEach(([value, text]) => {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = text;
+        select.appendChild(opt);
+      });
+      select.value = droppedModules.has(key) ? "drop" : "keep";
+      select.addEventListener("change", () => {
+        const isDropped = select.value === "drop";
+        if (isDropped) droppedModules.add(key);
+        else droppedModules.delete(key);
+        saveDroppedModules(droppedModules);
+        rowEl.classList.toggle("table-danger", isDropped);
+        onChange();
+      });
+      return select;
+    }
 
     const trs = table.querySelectorAll("tbody > tr");
     trs.forEach((tr) => {
@@ -175,6 +223,10 @@
         return; // "Credit for GPA" already marks this Non-GPA - trustworthy
       }
 
+      // Stacks the grade / what-if dropdown / classification control onto
+      // their own lines instead of wrapping mid-row (see styles.css).
+      cells[gradeIdx].classList.add("gpa-uop-grade-cell");
+
       let levelRows = currentLevelRows;
       let semGroup = currentSemesterGroup;
 
@@ -200,6 +252,13 @@
       }
 
       const rowId = `uop:${rowCounter++}`;
+      // Stable across reloads (unlike rowId, which is just a load-order
+      // counter) so a "drop this module" choice can be remembered -
+      // course code, plus an occurrence number to tell resits apart.
+      const occurrence = (codeOccurrence.get(code) || 0) + 1;
+      codeOccurrence.set(code, occurrence);
+      const stableKey = occurrence === 1 ? code : `${code}#${occurrence}`;
+
       let rowDesc;
       // AllGrades renders an ungraded module as literal text "Pending"
       // (inside a <small>), not a blank cell - treat both the same way.
@@ -214,6 +273,7 @@
         cells[gradeIdx].appendChild(dropdown);
         rowDesc = {
           rowId,
+          stableKey,
           code,
           credit,
           isPending: true,
@@ -226,16 +286,34 @@
           recalculateAndRender,
         );
         cells[gradeIdx].appendChild(dropdown);
-        rowDesc = { rowId, code, credit, isPending: true, fallbackGrade: rawGrade };
+        rowDesc = {
+          rowId,
+          stableKey,
+          code,
+          credit,
+          isPending: true,
+          fallbackGrade: rawGrade,
+        };
       } else if (gradePoints[rawGrade] !== undefined) {
-        rowDesc = { rowId, code, credit, grade: rawGrade };
+        rowDesc = { rowId, stableKey, code, credit, grade: rawGrade };
       } else {
         console.warn("[UoP GPA] Unrecognized grade, skipping:", rawGrade);
         return;
       }
 
+      // Lets a student drop a module out of their GPA entirely (e.g. one
+      // they plan to repeat and don't want counted yet). A dedicated
+      // Keep/Drop control rather than the shared engine one, since that
+      // one's wording ("GPA module" / "Non-GPA module") is about a
+      // module's classification, not about dropping it.
+      tr.classList.toggle("table-danger", droppedModules.has(stableKey));
+      cells[gradeIdx].appendChild(
+        buildDropControl(stableKey, tr, recalculateAndRender),
+      );
+
       levelRows.push(rowDesc);
       semGroup.rows.push(rowDesc);
+      allRowDescs.push(rowDesc);
       semGroup.lastRowEl = tr;
     });
 
@@ -244,17 +322,19 @@
     function toEntry(r) {
       const override = r.isPending ? engine.getWhatIfOverride(r.rowId) : null;
       const grade = r.isPending ? override || r.fallbackGrade || null : r.grade;
+      const eligible = !droppedModules.has(r.stableKey);
       return {
         id: r.rowId,
         code: r.code,
         credit: r.credit,
         gradePoint: grade ? gradePoints[grade] : null,
         isGraded: !!grade,
+        eligible,
       };
     }
 
     function creditWeightedGpa(rows) {
-      const entries = rows.map(toEntry);
+      const entries = rows.map(toEntry).filter((e) => e.eligible);
       const winners = engine.selectBestAttempts(entries);
       let credits = 0,
         points = 0;
@@ -429,6 +509,14 @@
         .map(([lvl, pct]) => `${lvl}L=${pct}%`)
         .join(", ");
 
+      let droppedCount = 0,
+        droppedCredits = 0;
+      allRowDescs.forEach((r) => {
+        if (toEntry(r).eligible) return;
+        droppedCount++;
+        droppedCredits += r.credit;
+      });
+
       tbody.appendChild(
         engine.makeSummaryRow({
           colSpan: headerCells.length,
@@ -459,6 +547,17 @@
           rowClass: "gpa-uop-nongpa-row",
         }),
       );
+      if (droppedCount > 0) {
+        tbody.appendChild(
+          engine.makeSummaryRow({
+            colSpan: headerCells.length,
+            label: "Dropped from GPA (by you):",
+            value: `${droppedCount} module(s), ${droppedCredits} credits`,
+            isWhatIf,
+            rowClass: "gpa-uop-nongpa-row",
+          }),
+        );
+      }
     }
 
     recalculateAndRender();

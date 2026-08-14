@@ -181,6 +181,26 @@
   color: #6d28d9;
 }
 
+/* UoP: grade cell - stacks the grade text, what-if dropdown, and
+   Keep/Drop control on their own lines instead of wrapping together
+   mid-row. */
+.gpa-uop-grade-cell {
+  white-space: normal;
+  min-width: 150px;
+}
+
+.gpa-uop-grade-cell .gpa-ext-whatif-select {
+  display: block;
+  margin: 4px 0 0 0;
+}
+
+/* Drop control reads red once a module is actually dropped, matching the
+   table-danger row tint it triggers. */
+.gpa-uop-drop-select:has(option[value="drop"]:checked) {
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
 /* UoP: Non-GPA courses row - amber, matching the degree-type row's accent */
 .gpa-uop-nongpa-row td {
   background-color: #fffbeb;
