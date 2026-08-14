@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "UoM GPA Calculator",
-  "version": "1.0",
-  "description": "Calculates overall GPA on UoM results page",
+  "name": "Uni GPA Calculator",
+  "version": "1.1.1",
+  "description": "Automatically calculates GPA on supported Sri Lankan university exam results portals (UWU, UoM, UoP).",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -11,9 +11,19 @@
   "content_scripts": [
     {
       "matches": [
-        "https://lms.uom.lk/mis_exam/reports/view_my_results.php*"
+        "https://exam.uwu.ac.lk/ug/user/*",
+        "https://lms.uom.lk/mis_exam/reports/view_my_results.php*",
+        "https://sciims.pdn.ac.lk/Student/FinalGrades*",
+        "https://sciims.pdn.ac.lk/Student/AllGrades*"
       ],
-      "js": ["gpa.js"],
+      "js": [
+        "core/engine.js",
+        "adapters/uwu.js",
+        "adapters/uom.js",
+        "adapters/uop.js",
+        "main.js"
+      ],
+      "css": ["styles.css"],
       "run_at": "document_idle"
     }
   ]
