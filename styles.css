@@ -129,3 +129,69 @@
   background-color: #fff;
   vertical-align: middle;
 }
+
+/* UoP degree programme toggle (General vs Honours weighting) */
+.gpa-uop-degreetype-row td {
+  background-color: #fffbeb;
+  border-top: 1px solid #fde68a;
+  border-bottom: 2px solid #fde68a;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+}
+
+/* UoP: per-level GPA rows - violet, distinct from UWU's default gray
+   SGPA rows and UoM's blue/indigo rows */
+.gpa-uop-level-row td {
+  background-color: #f5f3ff;
+  border-top: 1px solid #ddd6fe;
+  border-bottom: 1px solid #ddd6fe;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+.gpa-uop-level-row .gpa-ext-value {
+  color: #6d28d9;
+}
+
+/* UoP: Overall GPA row - stronger violet emphasis */
+.gpa-uop-overall-row td {
+  background-color: #ede9fe;
+  border-top: 2px solid #a78bfa;
+  border-bottom: 2px solid #a78bfa;
+  padding: 10px 12px;
+  font-size: 1rem;
+}
+
+.gpa-uop-overall-row .gpa-ext-value {
+  color: #5b21b6;
+}
+
+/* UoP: GPA credits row */
+.gpa-uop-credits-row td {
+  background-color: #ffffff;
+  border-top: none;
+  border-bottom: 1px solid #ede9fe;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.gpa-uop-credits-row .gpa-ext-value {
+  font-weight: 600;
+  color: #6d28d9;
+}
+
+/* UoP: Non-GPA courses row - amber, matching the degree-type row's accent */
+.gpa-uop-nongpa-row td {
+  background-color: #fffbeb;
+  border-top: none;
+  border-bottom: 1px solid #fde68a;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.gpa-uop-nongpa-row .gpa-ext-value {
+  font-weight: 600;
+  color: #92400e;
+}
