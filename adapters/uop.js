@@ -143,6 +143,7 @@
       (th) => th.textContent.trim(),
     );
     const codeIdx = headerCells.findIndex((h) => /course/i.test(h));
+    const nameIdx = headerCells.findIndex((h) => /^name$/i.test(h));
     const gradeIdx = headerCells.findIndex((h) => /grade/i.test(h));
     const creditIdx = headerCells.findIndex((h) => /credit/i.test(h));
     const semesterIdx = headerCells.findIndex((h) => /semester/i.test(h));
@@ -215,6 +216,7 @@
       if (cells.length <= creditIdx) return;
 
       const code = cells[codeIdx].textContent.trim();
+      const name = nameIdx !== -1 ? cells[nameIdx].textContent.trim() : "";
       const rawGrade = cells[gradeIdx].textContent.trim();
       const credit = Number.parseFloat(cells[creditIdx].textContent.trim());
 
@@ -275,6 +277,7 @@
           rowId,
           stableKey,
           code,
+          name,
           credit,
           isPending: true,
           fallbackGrade: rawGrade === "I" ? "I" : null,
@@ -290,12 +293,13 @@
           rowId,
           stableKey,
           code,
+          name,
           credit,
           isPending: true,
           fallbackGrade: rawGrade,
         };
       } else if (gradePoints[rawGrade] !== undefined) {
-        rowDesc = { rowId, stableKey, code, credit, grade: rawGrade };
+        rowDesc = { rowId, stableKey, code, name, credit, grade: rawGrade };
       } else {
         console.warn("[UoP GPA] Unrecognized grade, skipping:", rawGrade);
         return;
@@ -377,6 +381,11 @@
       td.colSpan = headerCells.length;
       td.className = "text-right";
 
+      const tag = document.createElement("span");
+      tag.className = "gpa-uop-setting-tag";
+      tag.textContent = "SETTING";
+      td.appendChild(tag);
+
       const label = document.createElement("strong");
       label.textContent = "Degree Programme: ";
       td.appendChild(label);
@@ -400,6 +409,32 @@
       });
       td.appendChild(select);
 
+      // Clears any manual override + cached result and re-fetches from
+      // /Student - useful if detection guessed wrong the first time, the
+      // student's registered programme changed, or the cache is stale.
+      const autoBtn = document.createElement("button");
+      autoBtn.type = "button";
+      autoBtn.className = "gpa-uop-autodetect-btn";
+      autoBtn.textContent = "Auto-detect";
+      autoBtn.title = "Re-check your degree programme from the Student portal";
+      autoBtn.addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(DETECTED_CACHE_KEY);
+        autoBtn.disabled = true;
+        autoBtn.textContent = "Detecting…";
+        detectDegreeType().then((result) => {
+          autoBtn.disabled = false;
+          autoBtn.textContent = "Auto-detect";
+          if (result) {
+            detectedDegree = result;
+            select.value = result.type;
+          }
+          note.textContent = degreeTypeSourceNote();
+          recalculateAndRender();
+        });
+      });
+      td.appendChild(autoBtn);
+
       const note = document.createElement("span");
       note.className = "gpa-ext-extra";
       note.textContent = degreeTypeSourceNote();
@@ -407,6 +442,18 @@
 
       tr.appendChild(td);
       return { tr, select, note };
+    }
+
+    function buildDropHintRow() {
+      const tr = document.createElement("tr");
+      tr.className = "gpa-uop-drophint-row";
+      const td = document.createElement("td");
+      td.colSpan = headerCells.length;
+      td.innerHTML =
+        "💡 Want to drop a module from your GPA (e.g. one you plan to repeat)? " +
+        "Use the <strong>Keep / Drop</strong> dropdown next to that module's grade in the table below.";
+      tr.appendChild(td);
+      return tr;
     }
 
     // FinalGrades: append/insert straight into the real table, as before.
@@ -430,8 +477,25 @@
       tbody = table.querySelector("tbody") || table;
     }
 
+    // Degree Programme + the drop hint always get their own small table
+    // placed BEFORE the results table entirely (on both pages), so they
+    // sit above the "#. Course Name..." column header instead of below
+    // it - independent of where the rest of the GPA summary rows go.
+    const controlTable = document.createElement("table");
+    controlTable.className = "table gpa-uop-summary-table";
+    const controlTbody = document.createElement("tbody");
+    controlTable.appendChild(controlTbody);
+    const controlWrapper = document.createElement("div");
+    controlWrapper.className = "table-responsive text-nowrap mb-2";
+    controlWrapper.appendChild(controlTable);
+    (document.getElementById("dtTable") || table).insertAdjacentElement(
+      "beforebegin",
+      controlWrapper,
+    );
+
     const degreeTypeRow = buildDegreeTypeRow();
-    tbody.insertBefore(degreeTypeRow.tr, tbody.firstChild);
+    controlTbody.appendChild(degreeTypeRow.tr);
+    controlTbody.appendChild(buildDropHintRow());
 
     // Auto-detect in the background; only touch the UI if the student
     // hasn't already picked a value themselves in the meantime.
@@ -511,10 +575,12 @@
 
       let droppedCount = 0,
         droppedCredits = 0;
+      const droppedLabels = [];
       allRowDescs.forEach((r) => {
         if (toEntry(r).eligible) return;
         droppedCount++;
         droppedCredits += r.credit;
+        droppedLabels.push(r.name ? `${r.code} (${r.name})` : r.code);
       });
 
       tbody.appendChild(
@@ -552,7 +618,8 @@
           engine.makeSummaryRow({
             colSpan: headerCells.length,
             label: "Dropped from GPA (by you):",
-            value: `${droppedCount} module(s), ${droppedCredits} credits`,
+            value: droppedLabels.join(", "),
+            extraText: `(${droppedCount} module(s), ${droppedCredits} credits)`,
             isWhatIf,
             rowClass: "gpa-uop-nongpa-row",
           }),
