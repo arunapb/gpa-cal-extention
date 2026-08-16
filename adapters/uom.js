@@ -6,7 +6,10 @@
 // column that already says "-" for non-GPA modules (more reliable
 // than guessing from a course code, so no manual classification
 // override is needed here), and TWO simultaneous grading scales
-// (4.0 and 4.2, differing only in what A+ is worth).
+// (4.0 and 4.2, differing only in what A+ is worth). Both scales show
+// in the Overall GPA summary rows; the inline per-semester SGPA guess
+// (next to UoM's own "SGPA : -" cells) shows only the 4.0 scale, to
+// keep that inline text from getting cluttered.
 
 (function () {
   const gradePoints40 = {
@@ -186,12 +189,11 @@
       entries.forEach((e) => {
         if (!e.isGraded) return;
         if (!groupStats.has(e.groupIndex)) {
-          groupStats.set(e.groupIndex, { qp40: 0, qp42: 0, totalCredits: 0 });
+          groupStats.set(e.groupIndex, { qp40: 0, totalCredits: 0 });
         }
         const s = groupStats.get(e.groupIndex);
         s.totalCredits += e.credit;
         s.qp40 += e.gradePoint * e.credit;
-        s.qp42 += e.gradePoint42 * e.credit;
       });
 
       semesterGroups.forEach((group, idx) => {
@@ -201,14 +203,13 @@
         const stats = groupStats.get(idx);
         if (!stats || stats.totalCredits === 0) return;
         const sgpa40 = (stats.qp40 / stats.totalCredits).toFixed(4);
-        const sgpa42 = (stats.qp42 / stats.totalCredits).toFixed(4);
         const groupHasOverride = entries.some(
           (e) => e.groupIndex === idx && e.hasOverride,
         );
         const span = document.createElement("span");
         span.className = "gpa-ext-sgpa-guess";
         span.innerHTML =
-          ` &rarr; ${sgpa40} / ${sgpa42}` +
+          ` &rarr; ${sgpa40}` +
           (groupHasOverride
             ? ' <span class="gpa-ext-whatif-badge">what-if</span>'
             : "");
